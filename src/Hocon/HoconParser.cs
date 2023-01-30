@@ -469,6 +469,11 @@ namespace Hocon
                                 $"found `{_tokens.Current.Type}` instead.");
 
                         owner.ReParent(ParseInclude());
+                        // Because values specified in the include may be overridden by later declarations,
+                        // we need to do something like add a new hoconObject so that object Merging will
+                        // behave correctly.
+                        hoconObject = new HoconObject(owner);
+                        owner.Add(hoconObject);
                         valueWasParsed = true;
                         break;
 
