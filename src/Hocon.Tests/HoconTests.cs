@@ -52,6 +52,71 @@ y = hello
         }
 
         [Fact]
+        public void CanMergeIncludeObjectsInRoot()
+        {
+            var includeHocon = @"
+a.hello = world,
+a.x = abc,
+";
+            var hocon = @"
+include ""foo""
+a.goodnight = moon,
+a.x = def,
+";
+            Task<string> IncludeCallback(HoconCallbackType t, string s)
+            {
+                return Task.FromResult(includeHocon);
+            }
+            var config = HoconParser.Parse(hocon, IncludeCallback);
+
+            Assert.Equal("world", config.GetString("a.hello"));
+            Assert.Equal("moon", config.GetString("a.goodnight"));
+            Assert.Equal("def", config.GetString("a.x"));
+        }
+
+        [Fact]
+        public void CanOverwriteFieldsInRoot()
+        {
+            var includeHocon = @"
+x = abc
+y = 123
+";
+            var hocon = @"
+include ""foo""
+x = def
+y = 456
+";
+            Task<string> IncludeCallback(HoconCallbackType t, string s)
+            {
+                return Task.FromResult(includeHocon);
+            }
+            var config = HoconParser.Parse(hocon, IncludeCallback);
+
+            Assert.Equal("def", config.GetString("x"));
+            Assert.Equal(456, config.GetInt("y"));
+        }
+
+        [Fact]
+        public void CanConcatenateIncludedArraysInRoot()
+        {
+            var includeHocon = @"
+array = [ 1 ]
+";
+            var hocon = @"
+include ""foo""
+array += 2,
+";
+            Task<string> IncludeCallback(HoconCallbackType t, string s)
+            {
+                return Task.FromResult(includeHocon);
+            }
+            var config = HoconParser.Parse(hocon, IncludeCallback);
+            var expected = new[] { 1, 2 };
+            var actual = config.GetIntList("array");
+            Assert.True(expected.SequenceEqual(actual), $"Expected: [{string.Join(",", expected)}]\nActual:   [{string.Join(",", actual)}]");
+        }
+
+        [Fact]
         public void CanAssignArrayToField()
         {
             var hocon = @"a=
