@@ -581,8 +581,27 @@ namespace Hocon
 
             Path.AddRange(relativePath);
 
-            var currentField = owner.TraversePath(relativePath);
-            currentField.SetValue(ParseValue(currentField));
+            if (_tokens.Current.Type == TokenType.PlusEqualAssign)
+            {
+                foreach (var child in _root.Children)
+                {
+                    // Calling TraversePath prematurely forces objects to merge
+                    // too early. This workaround doesn't really work in anything but the simplest case:
+                    var childObject = child.GetObject();
+                    if (childObject.TryGetValue(relativePath, out var previousValue))
+                    {
+                        var field = childObject.TraversePath(relativePath);
+                        field.SetValue(ParseValue(field));
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                var currentField = owner.TraversePath(relativePath);
+                currentField.SetValue(ParseValue(currentField));
+            }
+
 
             Path.RemoveRange(Path.Count - relativePath.Count, relativePath.Count);
         }
