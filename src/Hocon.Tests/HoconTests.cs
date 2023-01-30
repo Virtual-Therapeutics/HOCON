@@ -116,6 +116,43 @@ array += 2,
             Assert.True(expected.SequenceEqual(actual), $"Expected: [{string.Join(",", expected)}]\nActual:   [{string.Join(",", actual)}]");
         }
 
+        [Fact(Skip = "Fixing this seems complicated")]
+        public void CanIncludeFilesThatConcatenate()
+        {
+            var includeHocon = @"
+array = [ 1 ]
+";
+
+            var includeAppendHocon = @"
+array += 2,
+";
+            var hocon = @"
+include ""foo""
+include ""bar""
+array += 3,
+";
+            var inline = @"
+array = [ 1 ],
+array += 2,
+array += 3,
+";
+            Task<string> IncludeCallback(HoconCallbackType t, string s)
+            {
+                if (s == "foo")
+                    return Task.FromResult(includeHocon);
+                return Task.FromResult(includeAppendHocon);
+            }
+            var config = HoconParser.Parse(hocon, IncludeCallback);
+            var expected = new[] { 1, 2, 3 };
+            var actual = config.GetIntList("array");
+            Assert.True(expected.SequenceEqual(actual), $"Expected: [{string.Join(",", expected)}]\nActual:   [{string.Join(",", actual)}]");
+
+            // Compare:
+            var inlineConfig = HoconParser.Parse(inline, IncludeCallback);
+            actual = inlineConfig.GetIntList("array");
+            Assert.True(expected.SequenceEqual(actual), $"Expected: [{string.Join(",", expected)}]\nActual:   [{string.Join(",", actual)}]");
+        }
+
         [Fact]
         public void CanAssignArrayToField()
         {
